@@ -30,3 +30,11 @@ RAG-система была оценена с использованием сл�
     * Precision: 0.79
     * Recall: 0.81
     * F1: 0.80
+
+## Streamlit-приложение
+
+Интерфейс реализован с помощью библиотеки Streamlit.
+
+[**`Проект на Streamlit`**](https://rag-system-wikipedia.streamlit.app/)
+
+<img src="./image.png" width="600" alt="RAG System Interface"/>
