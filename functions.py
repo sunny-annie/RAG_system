@@ -3,6 +3,7 @@ import requests
 from langchain.vectorstores import FAISS
 
 import os
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -38,10 +39,11 @@ def create_prompt(query, relevant_docs):
     2. Только 1 предложение (50-100 символов) на русском языке.
     3. Запрещено:
       - Упоминать источники/документы
-      - Технические термины (doc_123)
+      - Технические термины (doc_123, @sys)
       - Маркированные списки
       - Любые разделы кроме ответа
       - Выдумывать ответы
+      - Повторять вопрос
     <</SYS>>
 
     ### Контекст ###
@@ -59,8 +61,6 @@ def create_prompt(query, relevant_docs):
     Ответ: [/INST]</s>
     """
     return prompt
-
-import requests
 
 def get_response(query, vector_store, api_url, api_token):
     '''
@@ -93,7 +93,7 @@ def get_response(query, vector_store, api_url, api_token):
             "inputs": prompt,
             "parameters": {
                 "max_length": 2000,
-                "temperature": 0.7,
+                "temperature": 0.6,
                 "num_return_sequences": 1,
             }
         }
@@ -103,7 +103,18 @@ def get_response(query, vector_store, api_url, api_token):
 
         # Обрабатываем успешный ответ
         output = response.json()
-        return output[0]["generated_text"][len(prompt):]
+        full_response = output[0]["generated_text"][len(prompt):]
+        
+        # Используем регулярные выражения для корректного разделения на предложения
+        pattern = r'(?<![А-Я][а-я]\.)(?<!\d\.)(?<![0-9])(?<!г\.)(?<!ул\.)(?<!пр\.)(?<!д\.)(?<!стр\.)(?<!корп\.)(?<!к\.)(?<!им\.)(?<!т\.)(?<!п\.)(?<=[.!?])\s+'
+        sentences = re.split(pattern, full_response)
+        first_sentence = sentences[0].strip()
+        
+        # Добавляем точку, если её нет в конце
+        if not first_sentence[-1] in '.!?':
+            first_sentence += '.'
+            
+        return first_sentence
 
     except requests.exceptions.HTTPError as err:
         error_msg = f"HTTP error ({err.response.status_code}): {err.response.text}"
@@ -115,7 +126,7 @@ def get_response(query, vector_store, api_url, api_token):
     except requests.exceptions.RequestException as err:
         error_msg = f"Request failed: {str(err)}"
         print(error_msg)
-        raise ValueError(error_msg) from err
+        return "Сервер временно недоступен, попробуйте позже"
 
     except (KeyError, IndexError) as err:
         error_msg = f"Invalid API response format: {str(err)}"
