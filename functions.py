@@ -93,7 +93,7 @@ def get_response(query, vector_store, api_url, api_token):
             "inputs": prompt,
             "parameters": {
                 "max_length": 2000,
-                "temperature": 0.6,
+                "temperature": 0.4,
                 "num_return_sequences": 1,
             }
         }
